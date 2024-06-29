@@ -1,0 +1,9 @@
+User Login
+
+Merchant : 
+email : merchant@gmail.comm
+pass  : 12345678
+
+Customer : 
+email : customer@gmail.comm
+pass  : 12345678
