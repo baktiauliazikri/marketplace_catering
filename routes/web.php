@@ -1,59 +1,83 @@
 <?php
 
-use App\Http\Controllers\Auth\AuthController;
-use App\Http\Controllers\Customers\CustomerController;
-use App\Http\Controllers\Dashboard\DashboardController;
-use App\Http\Controllers\Dashboard\MenuController;
-use App\Http\Controllers\Dashboard\OrderController;
+use App\Http\Controllers\auth\AuthenticationController;
+use App\Http\Controllers\auth\RegisterController;
+use App\Http\Controllers\customer\CartController;
+use App\Http\Controllers\customer\ProductController as CustomerProductController;
+use App\Http\Controllers\customer\TransactionController;
+use App\Http\Controllers\merchant\OrderController;
+use App\Http\Controllers\merchant\ProfileController;
+use App\Http\Controllers\merchant\ProductController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\RedirectController;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
 |
 | Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| contains the "web" middleware group. Now create something great!
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "web" middleware group. Make something great!
 |
 */
 
-// Guest routes
-Route::middleware('guest')->group(function () {
-  Route::get('/', [CustomerController::class, 'index'])->name('home');
-  // Add other guest routes here
-});
+Route::get('/', function () {
+    return view('index');
+})->name('pages.home');
 
-// Auth routes
-// Route::middleware('auth')->group(function () {
-Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-// Add other auth routes here
-// });
+Route::get('/login', [AuthenticationController::class, 'login'])->name('pages.auth.login');
+Route::post('/do_login', [AuthenticationController::class, 'do_login'])->name('pages.auth.do_login');
+Route::post('/logout', [AuthenticationController::class, 'logout'])->name('pages.auth.logout');
 
-// Customer routes
-// Route::middleware(['auth', 'role:customer'])->group(function () {
-// Add customer-specific routes here
-Route::get('/customer/profile', [CustomerController::class, 'profile'])->name('customer.profile');
-// });
+Route::get('/register', [RegisterController::class, 'register'])->name('pages.auth.register');
+Route::post('/do_register', [RegisterController::class, 'do_register'])->name('pages.auth.do_register');
 
-// Merchant routes
-// Route::middleware(['auth', 'role:merchant'])->group(function () {
-Route::resource('menu', MenuController::class);
-Route::resource('order', OrderController::class);
-// Add other merchant-specific routes here
-// });
+Route::prefix('/merchant')
+    ->middleware(['auth', 'role'])
+    ->group(function () {
+        Route::get('/dashboard', function () {
+            return view('pages.merchant.dashboard.index');
+        })->name('pages.merchant.dashboard');
 
+        Route::get('/profile', [ProfileController::class, 'index'])->name('pages.merchant.profile');
+        Route::post('/update_profile', [ProfileController::class, 'update'])->name('pages.merchant.update_profile');
 
-Route::middleware('guest')->group(function () {
-  Route::get('/login', [AuthController::class, 'loginForm'])->name('login');
-  Route::post('/', [AuthController::class, 'dologin']);
-  Route::get('/register', [AuthController::class, 'showRegistrationForm'])->name('register');
-  Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
-  Route::get('/register-merchant', [AuthController::class, 'showRegistrationFormMerchant'])->name('register.merchant');
-  Route::post('/register-merchant', [AuthController::class, 'registerMerchant'])->name('register.merchant.submit');
-});
+        Route::prefix('/products')->group(function () {
+            Route::get('', [ProductController::class, 'index'])->name('pages.merchant.products');
+            Route::get('/create', [ProductController::class, 'create'])->name('pages.merchant.products.create');
+            Route::post('/store', [ProductController::class, 'store'])->name('pages.merchant.products.store');
+            Route::get('/edit/{id}', [ProductController::class, 'edit'])->name('pages.merchant.products.edit');
+            Route::get('/edit/{id}', [ProductController::class, 'edit'])->name('pages.merchant.products.edit');
+            Route::put('/edit/{id}', [ProductController::class, 'update'])->name('pages.merchant.products.update');
+            Route::delete('/{id}', [ProductController::class, 'destroy'])->name('pages.merchant.products.destroy');
+        });
 
+        Route::prefix('/orders')->group(function() {
+            Route::get('', [OrderController::class, 'index'])->name('pages.merchant.orders');
+            Route::post('/{id}', [OrderController::class, 'verify'])->name('pages.merchant.orders.verify');
+        });
+    });
 
-Route::group(['middleware' => ['auth', 'checkrole:1,2']], function () {
-  Route::post('/logout', [AuthController::class, 'logout']);
-});
+Route::prefix('/customer')
+    ->middleware(['auth', 'role'])
+    ->group(function () {
+        Route::get('/dashboard', function () {
+            return view('pages.customer.dashboard.index');
+        })->name('pages.customer.dashboard');
+
+        Route::prefix('/products')->group(function () {
+            Route::get('', [CustomerProductController::class, 'index'])->name('pages.customer.products');
+            Route::get('/{id}', [CustomerProductController::class, 'show'])->name('pages.customer.products.show');
+            Route::post('/addToCart/{id}', [CustomerProductController::class, 'addToCart'])->name('pages.customer.products.addToCart');
+        });
+
+        Route::prefix('/carts')->group(function () {
+            Route::get('', [CartController::class, 'index'])->name('pages.customer.carts');
+            Route::get('/{id}', [CartController::class, 'destroy'])->name('pages.customer.carts.destroy');
+        });
+
+        Route::prefix('/transactions')->group(function () {
+            Route::get('', [TransactionController::class, 'index'])->name('pages.customer.transactions');
+            Route::post('', [TransactionController::class, 'store'])->name('pages.customer.transactions.store');
+        });
+    });
